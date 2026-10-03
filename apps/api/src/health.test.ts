@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app';
 import { createDatabaseCheck } from './health';
 import { createLogger } from './logger';
+import { testDatabaseUrl } from '../test/db-test';
 
 const logger = createLogger('silent');
 const webOrigin = 'http://localhost:3000';
@@ -89,10 +90,10 @@ describe('createDatabaseCheck com servidor que aceita e não responde', () => {
   });
 });
 
-// Roda quando há um Postgres de teste disponível (o CI ganha esse serviço na 0.5).
-describe.skipIf(!process.env['TEST_DATABASE_URL'])('GET /ready com Postgres real', () => {
+// Contra o Postgres de teste do docker-compose (local) ou do serviço do CI.
+describe('GET /ready com Postgres real', () => {
   it('responde 200 com o banco acessível', async () => {
-    const url = process.env['TEST_DATABASE_URL'] as string;
+    const url = testDatabaseUrl();
     const app = createApp({ logger, checkDatabase: createDatabaseCheck(url), webOrigin });
     const response = await request(app).get('/ready');
 

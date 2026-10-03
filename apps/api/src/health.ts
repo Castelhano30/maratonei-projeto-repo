@@ -3,7 +3,7 @@ import pg from 'pg';
 
 export type DatabaseCheck = () => Promise<void>;
 
-// Abre uma conexão curta e faz `select 1`. A 0.5 troca isto pelo Prisma.
+// Abre uma conexão curta e faz `select 1`.
 // Chamadas simultâneas dividem a mesma checagem, para que uma rajada em /ready
 // não vire uma rajada de conexões no banco, e o conjunto tem prazo total.
 export function createDatabaseCheck(connectionString: string, timeoutMs = 2000): DatabaseCheck {

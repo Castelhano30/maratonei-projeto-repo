@@ -1,0 +1,22 @@
+# Postgres local para desenvolvimento e testes (`pnpm --filter @maratonei/api db:up`).
+# Credenciais só de desenvolvimento, sem valor fora da máquina local.
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - '127.0.0.1:5433:5432'
+    environment:
+      POSTGRES_USER: maratonei
+      POSTGRES_PASSWORD: maratonei
+      POSTGRES_DB: maratonei
+    volumes:
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+      - maratonei-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U maratonei -d maratonei']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  maratonei-pgdata:

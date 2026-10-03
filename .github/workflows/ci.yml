@@ -16,6 +16,22 @@ jobs:
     name: Lint, typecheck e testes
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TEST_DATABASE_URL: postgresql://maratonei:maratonei@127.0.0.1:5432/maratonei_test
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: maratonei
+          POSTGRES_PASSWORD: maratonei
+          POSTGRES_DB: maratonei_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U maratonei -d maratonei_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - name: Baixar o código
         uses: actions/checkout@v7
@@ -40,3 +56,11 @@ jobs:
 
       - name: Testes
         run: pnpm test
+
+      - name: Gate de migração N-1 para N sobre dados
+        env:
+          PGPASSWORD: maratonei
+        run: |
+          psql -h 127.0.0.1 -U maratonei -d maratonei_test -c 'DROP DATABASE IF EXISTS maratonei_gate WITH (FORCE)' -c 'CREATE DATABASE maratonei_gate'
+          DIRECT_URL=postgresql://maratonei:maratonei@127.0.0.1:5432/maratonei_gate \
+            pnpm --filter @maratonei/api db:check-migrations

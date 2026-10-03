@@ -4,6 +4,8 @@ packages:
 
 allowBuilds:
   esbuild: true
+  prisma: true
+  '@prisma/engines': true
 
 # Versões publicadas há pouco tempo, liberadas de propósito para a política de idade mínima.
 # Remover cada entrada quando a versão passar do prazo configurado.

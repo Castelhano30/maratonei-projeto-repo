@@ -12,3 +12,5 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 *.log
+
+apps/api/src/generated/

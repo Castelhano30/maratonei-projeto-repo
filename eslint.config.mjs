@@ -4,7 +4,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', '**/coverage/**'] },
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/dist/**',
+      '**/coverage/**',
+      '**/generated/**',
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.recommended,
   {

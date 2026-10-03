@@ -1,0 +1,9 @@
+// Sem modelos de domínio: as tabelas nascem na história que as usa.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
