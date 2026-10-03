@@ -1,4 +1,4 @@
-import { createApp, serviceName } from './app';
+import { createApp, serviceName } from './app.js';
 
 const PORT = 3001;
 
