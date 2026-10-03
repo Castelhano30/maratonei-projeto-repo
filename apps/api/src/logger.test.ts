@@ -4,6 +4,7 @@ import { createApp } from './app';
 import { createLogger, redactUrl } from './logger';
 
 type LogEntry = {
+  level: number;
   req: { id: string; url: string; headers: Record<string, string> };
   token?: string;
 };
@@ -73,14 +74,48 @@ describe('logs estruturados', () => {
   });
 });
 
+describe('nível do log de requisição', () => {
+  it('usa info para 2xx, warn para 4xx e error para 5xx', async () => {
+    const { logger, parsed } = captureLogs();
+    const app = createApp({ logger, checkDatabase: async () => {} });
+    app.get('/quebra', () => {
+      throw new Error('falha interna');
+    });
+
+    await request(app).get('/health');
+    await request(app).get('/nao-existe');
+    await request(app).get('/quebra');
+    await nextTick();
+
+    expect(parsed().map((entry) => entry.level)).toEqual([30, 40, 50]);
+  });
+
+  it('não registra segredo nem mensagem do driver quando /ready falha', async () => {
+    const { logger, lines } = captureLogs();
+    const checkDatabase = async () => {
+      throw Object.assign(new Error('senha=segredo host=interno'), { code: 'ECONNREFUSED' });
+    };
+    await request(createApp({ logger, checkDatabase })).get('/ready');
+    await nextTick();
+
+    const raw = lines.join('\n');
+    expect(raw).toContain('ECONNREFUSED');
+    expect(raw).not.toContain('segredo');
+  });
+});
+
 describe('redactUrl', () => {
   it('mantém URLs sem query', () => {
     expect(redactUrl('/lists/1')).toBe('/lists/1');
   });
 
   it('mascara só as chaves sensíveis, sem diferenciar maiúsculas', () => {
-    expect(redactUrl('/x?Token=abc&page=1')).toBe(
-      `/x?Token=${encodeURIComponent('[REDACTED]')}&page=1`,
+    expect(redactUrl('/x?Token=abc&page=1')).toBe('/x?Token=[REDACTED]&page=1');
+  });
+
+  it('cobre nomes compostos e preserva o restante da query como enviado', () => {
+    expect(redactUrl('/x?access_token=a&user_email=b&q=a%20b+c&api-key=k')).toBe(
+      '/x?access_token=[REDACTED]&user_email=[REDACTED]&q=a%20b+c&api-key=[REDACTED]',
     );
   });
 });

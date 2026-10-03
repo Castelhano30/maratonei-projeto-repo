@@ -5,8 +5,8 @@ import { pinoHttp } from 'pino-http';
 
 const REDACTED = '[REDACTED]';
 
-// Parâmetros de query que nunca devem aparecer em log.
-const SENSITIVE_QUERY_KEYS = new Set(['token', 'email', 'password', 'senha', 'code', 'state']);
+// Chaves de query que nunca devem aparecer em log: qualquer nome que sugira credencial ou dado pessoal.
+const SENSITIVE_QUERY_KEY = /token|secret|key|pass|senha|e-?mail|code|state|auth|otp/i;
 
 // Campos redigidos em qualquer objeto de log (cabeçalhos, erros, contexto).
 export const REDACT_PATHS = [
@@ -14,6 +14,8 @@ export const REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers["proxy-authorization"]',
   'req.headers["x-auth-token"]',
+  'req.headers["x-api-key"]',
+  'req.headers["x-csrf-token"]',
   'res.headers["set-cookie"]',
   'token',
   'password',
@@ -21,16 +23,25 @@ export const REDACT_PATHS = [
   '*.token',
   '*.password',
   '*.email',
+  '*.*.token',
+  '*.*.password',
+  '*.*.email',
 ];
 
 export function redactUrl(url: string): string {
   const queryStart = url.indexOf('?');
   if (queryStart === -1) return url;
-  const params = new URLSearchParams(url.slice(queryStart + 1));
-  for (const key of new Set(params.keys())) {
-    if (SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) params.set(key, REDACTED);
-  }
-  return `${url.slice(0, queryStart)}?${params.toString()}`;
+  // Só os valores sensíveis são trocados; o restante da query segue como foi enviado.
+  const query = url
+    .slice(queryStart + 1)
+    .split('&')
+    .map((pair) => {
+      const separator = pair.indexOf('=');
+      const key = separator === -1 ? pair : pair.slice(0, separator);
+      return SENSITIVE_QUERY_KEY.test(decodeURIComponent(key)) ? `${key}=${REDACTED}` : pair;
+    })
+    .join('&');
+  return `${url.slice(0, queryStart)}?${query}`;
 }
 
 export function createLogger(level: string, destination?: DestinationStream): Logger {
