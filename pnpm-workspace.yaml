@@ -5,6 +5,8 @@ packages:
 allowBuilds:
   esbuild: true
 
+# Versões publicadas há pouco tempo, liberadas de propósito para a política de idade mínima.
+# Remover cada entrada quando a versão passar do prazo configurado.
 minimumReleaseAgeExclude:
   - eslint@10.12.0
   - pino@10.4.0
