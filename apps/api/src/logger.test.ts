@@ -5,6 +5,7 @@ import { createLogger, redactUrl } from './logger';
 
 type LogEntry = {
   level: number;
+  msg?: string;
   req: { id: string; url: string; headers: Record<string, string> };
   token?: string;
 };
@@ -19,12 +20,13 @@ function captureLogs() {
   };
 }
 
+const webOrigin = 'http://localhost:3000';
 const nextTick = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('logs estruturados', () => {
   it('registra id de requisição e redige cookie, autorização, token e e-mail', async () => {
     const { logger, lines, parsed } = captureLogs();
-    const app = createApp({ logger, checkDatabase: async () => {} });
+    const app = createApp({ logger, checkDatabase: async () => {}, webOrigin });
 
     await request(app)
       .get('/qualquer?token=segredo-do-token&email=pessoa@exemplo.com&pagina=2')
@@ -59,7 +61,7 @@ describe('logs estruturados', () => {
 
   it('gera um id novo por requisição e ignora o id enviado pelo cliente', async () => {
     const { logger, parsed } = captureLogs();
-    const app = createApp({ logger, checkDatabase: async () => {} });
+    const app = createApp({ logger, checkDatabase: async () => {}, webOrigin });
 
     const first = await request(app).get('/a').set('X-Request-Id', 'id-forjado');
     await request(app).get('/b');
@@ -95,9 +97,15 @@ describe('logs estruturados', () => {
 describe('nível do log de requisição', () => {
   it('usa info para 2xx, warn para 4xx e error para 5xx', async () => {
     const { logger, parsed } = captureLogs();
-    const app = createApp({ logger, checkDatabase: async () => {} });
-    app.get('/quebra', () => {
-      throw new Error('falha interna');
+    const app = createApp({
+      logger,
+      checkDatabase: async () => {},
+      webOrigin,
+      routes: (router) => {
+        router.get('/quebra', () => {
+          throw new Error('falha interna');
+        });
+      },
     });
 
     await request(app).get('/health');
@@ -105,7 +113,11 @@ describe('nível do log de requisição', () => {
     await request(app).get('/quebra');
     await nextTick();
 
-    expect(parsed().map((entry) => entry.level)).toEqual([30, 40, 50]);
+    // O erro inesperado também gera o próprio registro (sem `req`); aqui só contam os de requisição.
+    const levels = parsed()
+      .filter((entry) => entry.msg !== 'erro inesperado')
+      .map((entry) => entry.level);
+    expect(levels).toEqual([30, 40, 50]);
   });
 
   it('não registra segredo nem mensagem do driver quando /ready falha', async () => {
@@ -113,7 +125,7 @@ describe('nível do log de requisição', () => {
     const checkDatabase = async () => {
       throw Object.assign(new Error('senha=segredo host=interno'), { code: 'ECONNREFUSED' });
     };
-    await request(createApp({ logger, checkDatabase })).get('/ready');
+    await request(createApp({ logger, checkDatabase, webOrigin })).get('/ready');
     await nextTick();
 
     const raw = lines.join('\n');
@@ -143,7 +155,7 @@ describe('redactUrl', () => {
 
   it('responde normalmente e registra a requisição com chave malformada', async () => {
     const { logger, parsed } = captureLogs();
-    const app = createApp({ logger, checkDatabase: async () => {} });
+    const app = createApp({ logger, checkDatabase: async () => {}, webOrigin });
 
     const response = await request(app).get('/health?%E0%A4%A=1');
     await nextTick();

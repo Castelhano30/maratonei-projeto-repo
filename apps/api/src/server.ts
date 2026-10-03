@@ -7,7 +7,7 @@ try {
   const env = loadEnv();
   const logger = createLogger(env.LOG_LEVEL);
   const checkDatabase = createDatabaseCheck(env.DATABASE_URL);
-  createApp({ logger, checkDatabase }).listen(env.PORT, () => {
+  createApp({ logger, checkDatabase, webOrigin: env.WEB_ORIGIN }).listen(env.PORT, () => {
     logger.info({ port: env.PORT }, `${serviceName} ouvindo`);
   });
 } catch (error) {

@@ -10,6 +10,7 @@ describe('parseEnv', () => {
       PORT: 3001,
       LOG_LEVEL: 'info',
       DATABASE_URL: valid.DATABASE_URL,
+      WEB_ORIGIN: 'http://localhost:3000',
     });
   });
 
@@ -38,6 +39,15 @@ describe('parseEnv', () => {
     const attempt = () => parseEnv({ DATABASE_URL: 'mysql://usuario:senha-x@host/db' });
     expect(attempt).toThrow(/DATABASE_URL: valor inválido/);
     expect(attempt).not.toThrow(/senha-x/);
+  });
+
+  it('aceita WEB_ORIGIN válida e rejeita valor que não é URL', () => {
+    expect(parseEnv({ ...valid, WEB_ORIGIN: 'https://app.exemplo.com' }).WEB_ORIGIN).toBe(
+      'https://app.exemplo.com',
+    );
+    expect(() => parseEnv({ ...valid, WEB_ORIGIN: 'nao-e-url' })).toThrow(
+      /WEB_ORIGIN: valor inválido/,
+    );
   });
 
   it('rejeita porta fora do intervalo', () => {
