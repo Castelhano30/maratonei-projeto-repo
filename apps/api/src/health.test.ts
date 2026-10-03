@@ -1,3 +1,4 @@
+import net from 'node:net';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app';
@@ -51,6 +52,31 @@ describe('GET /ready', () => {
     const response = await request(app).get('/ready');
 
     expect(response.status).toBe(503);
+  });
+});
+
+describe('createDatabaseCheck com servidor que aceita e não responde', () => {
+  it('divide uma checagem entre chamadas simultâneas e respeita o prazo total', async () => {
+    const sockets: net.Socket[] = [];
+    const server = net.createServer((socket) => {
+      sockets.push(socket);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as net.AddressInfo;
+
+    try {
+      const check = createDatabaseCheck(`postgresql://u:p@127.0.0.1:${port}/db`, 200);
+      const startedAt = Date.now();
+      const results = await Promise.allSettled([check(), check(), check()]);
+      const elapsed = Date.now() - startedAt;
+
+      expect(results.map((result) => result.status)).toEqual(['rejected', 'rejected', 'rejected']);
+      expect(sockets).toHaveLength(1);
+      expect(elapsed).toBeLessThan(1500);
+    } finally {
+      sockets.forEach((socket) => socket.destroy());
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });
 
