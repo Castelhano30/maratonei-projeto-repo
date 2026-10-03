@@ -1,10 +1,12 @@
 import { createApp, serviceName } from './app.js';
 import { EnvError, loadEnv } from './env.js';
+import { createLogger } from './logger.js';
 
 try {
   const env = loadEnv();
-  createApp().listen(env.PORT, () => {
-    console.log(`${serviceName} ouvindo na porta ${env.PORT}`);
+  const logger = createLogger(env.LOG_LEVEL);
+  createApp({ logger }).listen(env.PORT, () => {
+    logger.info({ port: env.PORT }, `${serviceName} ouvindo`);
   });
 } catch (error) {
   if (error instanceof EnvError) {

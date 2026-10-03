@@ -7,3 +7,5 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - eslint@10.12.0
+  - pino@10.4.0
+  - supertest@7.3.1
