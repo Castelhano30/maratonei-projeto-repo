@@ -25,7 +25,10 @@ export function createApp({ logger, checkDatabase, webOrigin, routes }: AppDeps)
   app.use(corsPolicy(origin));
   app.use(checkOrigin(origin));
   app.use(express.json({ limit: '100kb' }));
-  app.use(createHealthRouter(checkDatabase));
+  const health = createHealthRouter(checkDatabase);
+  app.use(health);
+  // O web repassa `/api/*` à API (AD-2); `/health` sem prefixo segue sendo o alvo do monitor.
+  app.use('/api', health);
   routes?.(app);
   app.use(notFoundHandler);
   app.use(errorHandler);

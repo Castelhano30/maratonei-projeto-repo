@@ -100,3 +100,25 @@ describe('GET /ready com Postgres real', () => {
     expect(response.status).toBe(200);
   });
 });
+
+describe('health sob /api (alvo do proxy do web)', () => {
+  it('responde /api/health sem consultar o banco', async () => {
+    const checkDatabase = vi.fn().mockRejectedValue(new Error('banco fora'));
+    const response = await request(createApp({ logger, checkDatabase, webOrigin })).get(
+      '/api/health',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'ok' });
+    expect(checkDatabase).not.toHaveBeenCalled();
+  });
+
+  it('responde /api/ready com 503 quando o banco falha', async () => {
+    const checkDatabase = vi.fn().mockRejectedValue(new Error('banco fora'));
+    const response = await request(createApp({ logger, checkDatabase, webOrigin })).get(
+      '/api/ready',
+    );
+
+    expect(response.status).toBe(503);
+  });
+});
