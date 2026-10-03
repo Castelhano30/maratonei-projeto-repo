@@ -25,6 +25,24 @@ function build() {
   return { app, effect };
 }
 
+describe('WEB_ORIGIN com barra final ou caminho', () => {
+  it('compara o Origin do navegador com a origem normalizada', async () => {
+    const app = createApp({
+      logger: createLogger('silent'),
+      checkDatabase: async () => {},
+      webOrigin: 'https://app.exemplo.com/painel/',
+      routes: (router) => {
+        router.post('/muda', (_req, res) => res.json({ ok: true }));
+      },
+    });
+
+    const response = await request(app).post('/muda').set('Origin', 'https://app.exemplo.com');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe('https://app.exemplo.com');
+  });
+});
+
 describe('cabeçalhos de segurança', () => {
   it('ativa o Helmet e remove X-Powered-By', async () => {
     const response = await request(build().app).get('/health');

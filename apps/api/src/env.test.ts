@@ -50,6 +50,12 @@ describe('parseEnv', () => {
     );
   });
 
+  it('rejeita WEB_ORIGIN que não usa http nem https', () => {
+    expect(() => parseEnv({ ...valid, WEB_ORIGIN: 'data:text/plain,x' })).toThrow(
+      /WEB_ORIGIN: valor inválido/,
+    );
+  });
+
   it('rejeita porta fora do intervalo', () => {
     expect(() => parseEnv({ ...valid, PORT: '70000' })).toThrow(/PORT/);
   });
