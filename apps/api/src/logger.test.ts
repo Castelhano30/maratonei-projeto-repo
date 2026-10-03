@@ -23,7 +23,7 @@ const nextTick = () => new Promise((resolve) => setImmediate(resolve));
 describe('logs estruturados', () => {
   it('registra id de requisição e redige cookie, autorização, token e e-mail', async () => {
     const { logger, lines, parsed } = captureLogs();
-    const app = createApp({ logger });
+    const app = createApp({ logger, checkDatabase: async () => {} });
 
     await request(app)
       .get('/qualquer?token=segredo-do-token&email=pessoa@exemplo.com&pagina=2')
@@ -52,7 +52,7 @@ describe('logs estruturados', () => {
 
   it('gera um id novo por requisição e ignora o id enviado pelo cliente', async () => {
     const { logger, parsed } = captureLogs();
-    const app = createApp({ logger });
+    const app = createApp({ logger, checkDatabase: async () => {} });
 
     const first = await request(app).get('/a').set('X-Request-Id', 'id-forjado');
     await request(app).get('/b');
