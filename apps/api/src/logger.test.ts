@@ -30,7 +30,10 @@ describe('logs estruturados', () => {
       .get('/qualquer?token=segredo-do-token&email=pessoa@exemplo.com&pagina=2')
       .set('Cookie', 'sessao=valor-do-cookie')
       .set('Authorization', 'Bearer valor-da-autorizacao')
-      .set('X-Auth-Token', 'valor-do-x-auth');
+      .set('X-Auth-Token', 'valor-do-x-auth')
+      .set('X-Api-Key', 'valor-da-api-key')
+      .set('X-Csrf-Token', 'valor-do-csrf')
+      .set('Proxy-Authorization', 'valor-do-proxy');
     await nextTick();
 
     const raw = lines.join('\n');
@@ -40,6 +43,9 @@ describe('logs estruturados', () => {
       'valor-do-cookie',
       'valor-da-autorizacao',
       'valor-do-x-auth',
+      'valor-da-api-key',
+      'valor-do-csrf',
+      'valor-do-proxy',
     ]) {
       expect(raw).not.toContain(secret);
     }
@@ -71,6 +77,18 @@ describe('logs estruturados', () => {
     const [entry] = parsed();
     expect(JSON.stringify(entry)).not.toContain('a@b.com');
     expect(entry?.token).toBe('[REDACTED]');
+  });
+
+  it('redige campos sensíveis em profundidade 2', () => {
+    const { logger, lines } = captureLogs();
+    logger.info(
+      { a: { b: { email: 'fundo@b.com', password: 'senha-funda', token: 'tok-fundo' } } },
+      'teste',
+    );
+    const raw = lines.join('\n');
+    for (const secret of ['fundo@b.com', 'senha-funda', 'tok-fundo']) {
+      expect(raw).not.toContain(secret);
+    }
   });
 });
 
@@ -117,5 +135,20 @@ describe('redactUrl', () => {
     expect(redactUrl('/x?access_token=a&user_email=b&q=a%20b+c&api-key=k')).toBe(
       '/x?access_token=[REDACTED]&user_email=[REDACTED]&q=a%20b+c&api-key=[REDACTED]',
     );
+  });
+
+  it('não lança com percent-encoding malformado na chave', () => {
+    expect(redactUrl('/x?%E0%A4%A=1&a%=2&token=t')).toBe('/x?%E0%A4%A=1&a%=2&token=[REDACTED]');
+  });
+
+  it('responde normalmente e registra a requisição com chave malformada', async () => {
+    const { logger, parsed } = captureLogs();
+    const app = createApp({ logger, checkDatabase: async () => {} });
+
+    const response = await request(app).get('/health?%E0%A4%A=1');
+    await nextTick();
+
+    expect(response.status).toBe(200);
+    expect(parsed()).toHaveLength(1);
   });
 });

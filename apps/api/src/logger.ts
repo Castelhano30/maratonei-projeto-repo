@@ -28,6 +28,15 @@ export const REDACT_PATHS = [
   '*.*.email',
 ];
 
+// A chave vem do cliente: percent-encoding malformado não pode derrubar o log da requisição.
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export function redactUrl(url: string): string {
   const queryStart = url.indexOf('?');
   if (queryStart === -1) return url;
@@ -38,7 +47,7 @@ export function redactUrl(url: string): string {
     .map((pair) => {
       const separator = pair.indexOf('=');
       const key = separator === -1 ? pair : pair.slice(0, separator);
-      return SENSITIVE_QUERY_KEY.test(decodeURIComponent(key)) ? `${key}=${REDACTED}` : pair;
+      return SENSITIVE_QUERY_KEY.test(safeDecode(key)) ? `${key}=${REDACTED}` : pair;
     })
     .join('&');
   return `${url.slice(0, queryStart)}?${query}`;
