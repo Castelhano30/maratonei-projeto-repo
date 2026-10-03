@@ -34,6 +34,12 @@ describe('parseEnv', () => {
     }
   });
 
+  it('rejeita DATABASE_URL que não seja de Postgres, sem imprimir o valor', () => {
+    const attempt = () => parseEnv({ DATABASE_URL: 'mysql://usuario:senha-x@host/db' });
+    expect(attempt).toThrow(/DATABASE_URL: valor inválido/);
+    expect(attempt).not.toThrow(/senha-x/);
+  });
+
   it('rejeita porta fora do intervalo', () => {
     expect(() => parseEnv({ ...valid, PORT: '70000' })).toThrow(/PORT/);
   });
