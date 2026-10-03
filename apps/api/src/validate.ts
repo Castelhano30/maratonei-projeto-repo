@@ -27,12 +27,12 @@ export function validate(schemas: ValidationSchemas): RequestHandler {
     for (const source of SOURCES) {
       const schema = schemas[source];
       if (!schema) continue;
-      const result = schema.safeParse(req[source]);
+      const result = schema.safeParse(source === 'body' ? (req.body ?? {}) : req[source]);
       if (result.success) {
         valid[source] = result.data;
       } else {
         for (const issue of result.error.issues) {
-          details.push({ source, field: issue.path.join('.'), message: issue.message });
+          details.push({ source, field: issue.path.map(String).join('.'), message: issue.message });
         }
       }
     }

@@ -67,6 +67,16 @@ describe('validate', () => {
     expect(detail.message).not.toMatch(/expected|required|invalid input/i);
   });
 
+  it('detalha os campos quando a requisição não traz corpo JSON', async () => {
+    const response = await request(build()).post(`/itens/${id}?page=1`);
+
+    expect(response.status).toBe(400);
+    const pairs = response.body.error.details.map(
+      (detail: { source: string; field: string }) => `${detail.source}:${detail.field}`,
+    );
+    expect(pairs.sort()).toEqual(['body:age', 'body:name']);
+  });
+
   it('usa caminho pontuado para campos aninhados', async () => {
     const response = await request(build())
       .post('/aninhado')
